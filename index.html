@@ -1,0 +1,1181 @@
+<!DOCTYPE html> <html lang="ar" dir="rtl"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>LUXE — متجر الأزياء</title> <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cairo:wght@300;400;60
+cat > /mnt/user-data/outputs/luxe-store.html << 'ENDOFFILE'
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LUXE — متجر الأزياء</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Cairo:wght@300;400;600;700;900&family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const INIT_PRODUCTS = [
+  { id:1, name:'فستان الأناقة الذهبي', price:850, category:'فساتين', image:'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=400&q=80', desc:'فستان فاخر بتصميم عصري مناسب لكل المناسبات', stock:15, badge:'جديد', featured:true },
+  { id:2, name:'بلوفر كاشمير الملكي', price:420, category:'توبات', image:'https://images.unsplash.com/photo-1576566588028-4147f3842f27?w=400&q=80', desc:'بلوفر دافئ من أجود أنواع الكاشمير', stock:20, badge:'الأكثر مبيعاً', featured:true },
+  { id:3, name:'بنطلون المصمم الإيطالي', price:550, category:'بنطلونات', image:'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=400&q=80', desc:'بنطلون أنيق بقصة إيطالية فاخرة', stock:12, badge:'', featured:false },
+  { id:4, name:'حقيبة الجلد الطبيعي', price:1200, category:'اكسسوار', image:'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=400&q=80', desc:'حقيبة يد فاخرة من الجلد الطبيعي الأصلي', stock:8, badge:'حصري', featured:true },
+  { id:5, name:'عباية الشيفون الراقية', price:680, category:'عبايات', image:'https://images.unsplash.com/photo-1583744946564-b52ac1c389c8?w=400&q=80', desc:'عباية شيفون ناعمة بتطريز يدوي', stock:18, badge:'جديد', featured:false },
+  { id:6, name:'حذاء الكعب الكريستال', price:780, category:'أحذية', image:'https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=400&q=80', desc:'حذاء كعب عالي مزين بالكريستال الإيطالي', stock:10, badge:'', featured:true },
+  { id:7, name:'سكارف الحرير الباريسي', price:320, category:'اكسسوار', image:'https://images.unsplash.com/photo-1601924994987-69e26d50dc26?w=400&q=80', desc:'سكارف من الحرير الطبيعي بألوان زاهية', stock:25, badge:'عرض', oldPrice:450, featured:false },
+  { id:8, name:'جاكيت الجلد الفاخر', price:1450, category:'جاكيتات', image:'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80', desc:'جاكيت جلد أسود بتصميم كلاسيكي خالد', stock:7, badge:'الأكثر مبيعاً', featured:true },
+  { id:9, name:'فستان السهرة المطرز', price:1100, category:'فساتين', image:'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=400&q=80', desc:'فستان سهرة بتطريز يدوي بالخيوط الذهبية', stock:5, badge:'محدود', featured:true },
+];
+
+const store = {
+  get: (k, def) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } },
+  set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} }
+};
+
+function App() {
+  const [page, setPage] = useState('home');
+  const [cart, setCart] = useState(() => store.get('cart', []));
+  const [products, setProducts] = useState(() => store.get('products', INIT_PRODUCTS));
+  const [orders, setOrders] = useState(() => store.get('orders', []));
+  const [toast, setToast] = useState(null);
+  const [wishlist, setWishlist] = useState(() => store.get('wishlist', []));
+  const [adminPass] = useState('admin123');
+
+  useEffect(() => { store.set('cart', cart); }, [cart]);
+  useEffect(() => { store.set('products', products); }, [products]);
+  useEffect(() => { store.set('orders', orders); }, [orders]);
+  useEffect(() => { store.set('wishlist', wishlist); }, [wishlist]);
+
+  const showToast = (msg, type='success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const addToCart = (product) => {
+    setCart(prev => {
+      const ex = prev.find(i => i.id === product.id);
+      if (ex) return prev.map(i => i.id === product.id ? {...i, qty: i.qty+1} : i);
+      return [...prev, {...product, qty:1}];
+    });
+    showToast(`✓ تم إضافة "${product.name}" للسلة`);
+  };
+
+  const toggleWishlist = (product) => {
+    setWishlist(prev => {
+      const exists = prev.find(i => i.id === product.id);
+      if (exists) { showToast('تم الحذف من المفضلة', 'error'); return prev.filter(i => i.id !== product.id); }
+      showToast('❤️ تم الإضافة للمفضلة');
+      return [...prev, product];
+    });
+  };
+
+  const removeFromCart = (id) => setCart(prev => prev.filter(i => i.id !== id));
+  const updateQty = (id, qty) => {
+    if (qty < 1) { removeFromCart(id); return; }
+    setCart(prev => prev.map(i => i.id === id ? {...i, qty} : i));
+  };
+  const clearCart = () => setCart([]);
+  const cartCount = cart.reduce((s,i) => s+i.qty, 0);
+  const cartTotal = cart.reduce((s,i) => s+(i.price*i.qty), 0);
+
+  const placeOrder = (info) => {
+    const order = {
+      id: Date.now(),
+      items: [...cart],
+      total: cartTotal,
+      customer: info,
+      status: 'pending',
+      date: new Date().toLocaleDateString('ar-EG'),
+      time: new Date().toLocaleTimeString('ar-EG'),
+    };
+    setOrders(prev => [order, ...prev]);
+    clearCart();
+    showToast('🎉 تم تقديم طلبك بنجاح! سيتواصل معك فريقنا ');
+    setPage('home');
+  };
+
+  const confirmOrder = (id) => setOrders(prev => prev.map(o => o.id===id ? {...o, status:'confirmed'} : o));
+  const cancelOrder = (id) => setOrders(prev => prev.map(o => o.id===id ? {...o, status:'cancelled'} : o));
+
+  const addProduct = (p) => {
+    const np = {...p, id: Date.now(), stock: parseInt(p.stock)||10, badge: p.badge||'جديد', featured: p.featured||false};
+    setProducts(prev => [np, ...prev]);
+    showToast('✓ تم إضافة المنتج بنجاح');
+  };
+  const deleteProduct = (id) => {
+    setProducts(prev => prev.filter(p => p.id !== id));
+    showToast('تم حذف المنتج', 'error');
+  };
+  const updateProduct = (id, updates) => {
+    setProducts(prev => prev.map(p => p.id === id ? {...p, ...updates} : p));
+  };
+
+  return (
+    <div style={{minHeight:'100vh',display:'flex',flexDirection:'column'}}>
+      <Navbar page={page} setPage={setPage} cartCount={cartCount} wishlistCount={wishlist.length} />
+      {toast && <Toast msg={toast.msg} type={toast.type} />}
+      <div style={{flex:1}}>
+        {page === 'home' && <HomePage products={products} addToCart={addToCart} toggleWishlist={toggleWishlist} wishlist={wishlist} setPage={setPage} />}
+        {page === 'cart' && <CartPage cart={cart} updateQty={updateQty} removeFromCart={removeFromCart} cartTotal={cartTotal} placeOrder={placeOrder} setPage={setPage} clearCart={clearCart} />}
+        {page === 'wishlist' && <WishlistPage wishlist={wishlist} addToCart={addToCart} toggleWishlist={toggleWishlist} setPage={setPage} />}
+        {page === 'admin' && <AdminPage products={products} orders={orders} addProduct={addProduct} deleteProduct={deleteProduct} updateProduct={updateProduct} confirmOrder={confirmOrder} cancelOrder={cancelOrder} adminPass={adminPass} showToast={showToast} />}
+      </div>
+      {page !== 'admin' && <Footer setPage={setPage} />}
+    </div>
+  );
+}
+
+function Navbar({ page, setPage, cartCount, wishlistCount }) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  return (
+    <nav style={{background:'var(--dark)',padding:'0 2rem',display:'flex',alignItems:'center',justifyContent:'space-between',height:'70px',position:'sticky',top:0,zIndex:200,boxShadow:'0 2px 20px rgba(0,0,0,0.3)'}}>
+      <div style={{display:'flex',gap:'1rem',alignItems:'center'}}>
+        <NavBtn active={page==='home'} onClick={()=>setPage('home')}>🏠 الرئيسية</NavBtn>
+        <NavBtn active={page==='admin'} onClick={()=>setPage('admin')}>⚙️ الإدارة</NavBtn>
+      </div>
+      
+      <div onClick={()=>setPage('home')} style={{cursor:'pointer',textAlign:'center'}}>
+        <div style={{fontFamily:'Playfair Display',fontSize:'1.6rem',fontWeight:900,color:'var(--gold)',letterSpacing:'4px'}}>LUXE</div>
+        <div style={{fontSize:'0.6rem',color:'var(--muted)',letterSpacing:'3px'}}>متجر الأزياء </div>
+      </div>
+
+      <div style={{display:'flex',gap:'10px',alignItems:'center'}}>
+        {/* Wishlist */}
+        <div onClick={()=>setPage('wishlist')} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:'6px',background:'rgba(212,133,106,0.15)',border:'1px solid var(--rose)',borderRadius:'50px',padding:'8px 14px',transition:'all 0.2s',position:'relative'}}
+          onMouseOver={e=>e.currentTarget.style.background='rgba(212,133,106,0.25)'}
+          onMouseOut={e=>e.currentTarget.style.background='rgba(212,133,106,0.15)'}>
+          <span style={{fontSize:'1.1rem'}}>❤️</span>
+          {wishlistCount > 0 && (
+            <span style={{background:'var(--rose)',color:'white',borderRadius:'50%',width:'20px',height:'20px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:900}}>
+              {wishlistCount}
+            </span>
+          )}
+        </div>
+        {/* Cart */}
+        <div onClick={()=>setPage('cart')} style={{cursor:'pointer',display:'flex',alignItems:'center',gap:'8px',background:'rgba(201,168,76,0.15)',border:'1px solid var(--gold)',borderRadius:'50px',padding:'8px 18px',transition:'all 0.2s'}}
+          onMouseOver={e=>e.currentTarget.style.background='rgba(201,168,76,0.25)'}
+          onMouseOut={e=>e.currentTarget.style.background='rgba(201,168,76,0.15)'}>
+          <span style={{fontSize:'1rem'}}></span>
+          <span style={{color:'var(--gold)',fontWeight:700,fontFamily:'Tajawal'}}>السلة</span>
+          {cartCount > 0 && (
+            <span style={{background:'var(--gold)',color:'var(--dark)',borderRadius:'50%',width:'22px',height:'22px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.75rem',fontWeight:900,animation:'pop 0.3s ease'}}>
+              {cartCount}
+            </span>
+          )}
+        </div>
+      </div>
+    </nav>
+  );
+}
+
+function NavBtn({ active, onClick, children }) {
+  return (
+    <button onClick={onClick} style={{background:active?'rgba(201,168,76,0.2)':'transparent',border:active?'1px solid var(--gold)':'1px solid transparent',color:active?'var(--gold)':'var(--muted)',padding:'8px 16px',borderRadius:'8px',cursor:'pointer',fontFamily:'Tajawal',fontSize:'0.9rem',transition:'all 0.2s'}}>
+      {children}
+    </button>
+  );
+}
+
+
+function Toast({ msg, type }) {
+  return (
+    <div style={{position:'fixed',bottom:'2rem',right:'50%',transform:'translateX(50%)',background:type==='error'?'var(--red)':'var(--dark)',color:'white',padding:'14px 28px',borderRadius:'12px',zIndex:9999,fontFamily:'Tajawal',fontSize:'1rem',fontWeight:600,boxShadow:'0 8px 30px rgba(0,0,0,0.3)',border:`1px solid ${type==='error'?'#e74c3c':'var(--gold)'}`,animation:'fadeIn 0.3s ease',maxWidth:'400px',textAlign:'center'}}>
+      {msg}
+    </div>
+  );
+}
+
+
+function HomePage({ products, addToCart, toggleWishlist, wishlist, setPage }) {
+  const [cat, setCat] = useState('الكل');
+  const [search, setSearch] = useState('');
+  const cats = ['الكل', ...new Set(products.map(p=>p.category))];
+  const filtered = products.filter(p => (cat==='الكل'||p.category===cat) && (p.name.includes(search)||p.desc.includes(search)));
+
+  const newArrivals = products.filter(p => p.badge === 'جديد').slice(0,4);
+  const bestSellers = products.filter(p => p.badge === 'الأكثر مبيعاً' || p.featured).slice(0,4);
+  const offers = products.filter(p => p.oldPrice || p.badge === 'عرض').slice(0,3);
+
+  return (
+    <div style={{minHeight:'100vh'}}>
+      {/* Hero */}
+      <div style={{background:'linear-gradient(135deg,var(--dark) 0%,#2d1f0e 50%,#1a1208 100%)',padding:'5rem 2rem',textAlign:'center',position:'relative',overflow:'hidden'}}>
+        <div style={{position:'absolute',inset:0,backgroundImage:'radial-gradient(circle at 30% 50%, rgba(201,168,76,0.08) 0%, transparent 60%), radial-gradient(circle at 70% 50%, rgba(212,133,106,0.06) 0%, transparent 60%)'}}></div>
+        {/* Decorative circles */}
+        <div style={{position:'absolute',width:'300px',height:'300px',borderRadius:'50%',border:'1px solid rgba(201,168,76,0.1)',top:'-50px',right:'-80px'}}></div>
+        <div style={{position:'absolute',width:'200px',height:'200px',borderRadius:'50%',border:'1px solid rgba(201,168,76,0.08)',bottom:'-30px',left:'-40px'}}></div>
+        <div style={{position:'relative',zIndex:1}}>
+          <div style={{display:'inline-block',background:'rgba(201,168,76,0.1)',border:'1px solid rgba(201,168,76,0.3)',borderRadius:'50px',padding:'6px 20px',color:'var(--gold2)',fontSize:'0.8rem',letterSpacing:'3px',marginBottom:'1.5rem'}}>✦ مجموعة ربيع ٢٠٢٦ ✦</div>
+          <h1 style={{fontFamily:'Playfair Display',fontSize:'clamp(2.5rem,6vw,5rem)',fontWeight:900,color:'white',lineHeight:1.1,marginBottom:'1rem'}}>أزياء <span style={{color:'var(--gold)'}}>الفخامة</span><br/>والأناقة</h1>
+          <p style={{color:'var(--muted)',fontSize:'1.1rem',maxWidth:'500px',margin:'0 auto 2rem',lineHeight:1.8}}>اكتشف أرقى التصاميم العالمية المختارة بعناية لك</p>
+          <div style={{display:'flex',gap:'1rem',justifyContent:'center',flexWrap:'wrap'}}>
+            <button onClick={()=>document.getElementById('products-section').scrollIntoView({behavior:'smooth'})}
+              style={{background:'linear-gradient(135deg,var(--gold),var(--gold2))',color:'var(--dark)',border:'none',padding:'14px 36px',borderRadius:'50px',fontFamily:'Tajawal',fontSize:'1rem',fontWeight:700,cursor:'pointer',boxShadow:'0 8px 30px rgba(201,168,76,0.4)'}}>
+              تسوق الآن ↓
+            </button>
+            <button onClick={()=>document.getElementById('offers-section').scrollIntoView({behavior:'smooth'})}
+              style={{background:'transparent',color:'var(--gold)',border:'1px solid rgba(201,168,76,0.4)',padding:'14px 36px',borderRadius:'50px',fontFamily:'Tajawal',fontSize:'1rem',fontWeight:600,cursor:'pointer'}}>
+              🏷️ العروض
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Bar */}
+      <div style={{background:'var(--dark)',padding:'1.2rem 2rem',borderBottom:'1px solid rgba(201,168,76,0.2)'}}>
+        <div style={{maxWidth:'1200px',margin:'0 auto',display:'flex',justifyContent:'center',gap:'3rem',flexWrap:'wrap'}}>
+          {[['🚚','شحن مجاني','على جميع الطلبات'],['💎','منتجات أصلية','100% مضمونة'],['🔄','إرجاع سهل','خلال 14 يوم'],['🎁','تغليف فاخر','هدية مجاناً']].map(([icon,title,sub])=>(
+            <div key={title} style={{display:'flex',alignItems:'center',gap:'10px',textAlign:'right'}}>
+              <span style={{fontSize:'1.5rem'}}>{icon}</span>
+              <div>
+                <div style={{color:'var(--gold)',fontWeight:700,fontSize:'0.9rem'}}>{title}</div>
+                <div style={{color:'var(--muted)',fontSize:'0.75rem'}}>{sub}</div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+    
+      {newArrivals.length > 0 && (
+        <div style={{background:'white',padding:'4rem 2rem'}}>
+          <div style={{maxWidth:'1200px',margin:'0 auto'}}>
+            <SectionHeader title="وصل حديثاً" subtitle="أحدث إضافات موسم الربيع" emoji="✨" />
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:'1.5rem'}}>
+              {newArrivals.map(p => <ProductCard key={p.id} product={p} addToCart={addToCart} toggleWishlist={toggleWishlist} wishlist={wishlist} />)}
+            </div>
+          </div>
+        </div>
+      )}
+
+    
+      {bestSellers.length > 0 && (
+        <div style={{background:'linear-gradient(180deg, var(--light) 0%, var(--cream) 100%)',padding:'4rem 2rem'}}>
+          <div style={{maxWidth:'1200px',margin:'0 auto'}}>
+            <SectionHeader title="الأكثر مبيعاً" subtitle="المفضلة لدى عملائنا" emoji="🏆" />
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(260px,1fr))',gap:'1.5rem'}}>
+              {bestSellers.map(p => <ProductCard key={p.id} product={p} addToCart={addToCart} toggleWishlist={toggleWishlist} wishlist={wishlist} />)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      
+      <div id="offers-section" style={{background:'linear-gradient(135deg,#2d1f0e,var(--dark))',padding:'4rem 2rem'}}>
+        <div style={{maxWidth:'1200px',margin:'0 auto'}}>
+          <SectionHeader title="عروض وتخفيضات" subtitle="أسعار لا تفوّت — لفترة محدودة" emoji="🏷️" dark={true} />
+          {offers.length > 0 ? (
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(300px,1fr))',gap:'1.5rem'}}>
+              {offers.map(p => <OfferCard key={p.id} product={p} addToCart={addToCart} />)}
+            </div>
+          ) : (
+            
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(280px,1fr))',gap:'1.5rem'}}>
+              {[
+                {emoji:'🎀', title:'خصم 20%', sub:'على الطلب الأول', code:'LUXE20', bg:'rgba(201,168,76,0.15)', border:'var(--gold)'},
+                {emoji:'🚚', title:'شحن مجاني', sub:'على الطلبات فوق 500 ج.م', code:'', bg:'rgba(39,174,96,0.1)', border:'var(--green)'},
+                {emoji:'🎁', title:'هدية مجانية', sub:'مع كل طلب فوق 1000 ج.م', code:'', bg:'rgba(212,133,106,0.15)', border:'var(--rose)'},
+              ].map(promo=>(
+                <div key={promo.title} style={{background:promo.bg,border:`1px solid ${promo.border}`,borderRadius:'16px',padding:'2rem',textAlign:'center'}}>
+                  <div style={{fontSize:'3rem',marginBottom:'1rem'}}>{promo.emoji}</div>
+                  <div style={{fontFamily:'Playfair Display',fontSize:'1.5rem',color:'white',fontWeight:700,marginBottom:'0.5rem'}}>{promo.title}</div>
+                  <div style={{color:'rgba(255,255,255,0.7)',marginBottom:'1rem'}}>{promo.sub}</div>
+                  {promo.code && <div style={{background:'rgba(201,168,76,0.2)',border:'1px dashed var(--gold)',borderRadius:'8px',padding:'8px 16px',color:'var(--gold)',fontWeight:700,letterSpacing:'2px'}}>{promo.code}</div>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+
+    
+      <div id="products-section" style={{background:'var(--light)',borderBottom:'1px solid var(--border)',padding:'1.5rem 2rem'}}>
+        <div style={{maxWidth:'1200px',margin:'0 auto'}}>
+          <h2 style={{fontFamily:'Playfair Display',fontSize:'1.8rem',color:'var(--dark)',marginBottom:'1.2rem'}}>🛍️ جميع المنتجات</h2>
+          <div style={{display:'flex',gap:'1rem',flexWrap:'wrap',alignItems:'center'}}>
+            <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 ابحث عن منتج..."
+              style={{flex:1,minWidth:'200px',padding:'10px 16px',border:'1px solid var(--border)',borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',background:'white',outline:'none',color:'var(--text)'}} />
+            <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+              {cats.map(c => (
+                <button key={c} onClick={()=>setCat(c)}
+                  style={{padding:'8px 16px',borderRadius:'20px',border:'1px solid',borderColor:cat===c?'var(--gold)':'var(--border)',background:cat===c?'var(--gold)':'white',color:cat===c?'var(--dark)':'var(--muted)',fontFamily:'Tajawal',fontSize:'0.85rem',cursor:'pointer',fontWeight:cat===c?700:400,transition:'all 0.2s'}}>
+                  {c}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div style={{maxWidth:'1200px',margin:'0 auto',padding:'3rem 2rem'}}>
+        {filtered.length === 0 ? (
+          <div style={{textAlign:'center',padding:'5rem',color:'var(--muted)'}}>
+            <div style={{fontSize:'4rem',marginBottom:'1rem'}}>🔍</div>
+            <div style={{fontSize:'1.2rem'}}>لا توجد منتجات مطابقة</div>
+          </div>
+        ) : (
+          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'2rem'}}>
+            {filtered.map(p => <ProductCard key={p.id} product={p} addToCart={addToCart} toggleWishlist={toggleWishlist} wishlist={wishlist} />)}
+          </div>
+        )}
+      </div>
+      <NewsletterBanner />
+    </div>
+  );
+}
+
+function SectionHeader({ title, subtitle, emoji, dark }) {
+  return (
+    <div style={{textAlign:'center',marginBottom:'2.5rem'}}>
+      <div style={{display:'inline-block',background:dark?'rgba(201,168,76,0.15)':'rgba(201,168,76,0.1)',border:'1px solid rgba(201,168,76,0.3)',borderRadius:'50px',padding:'5px 16px',fontSize:'1.2rem',marginBottom:'0.8rem'}}>{emoji}</div>
+      <h2 style={{fontFamily:'Playfair Display',fontSize:'2rem',color:dark?'white':'var(--dark)',fontWeight:900,marginBottom:'0.5rem'}}>{title}</h2>
+      <p style={{color:dark?'rgba(255,255,255,0.6)':'var(--muted)',fontSize:'1rem'}}>{subtitle}</p>
+      <div style={{width:'60px',height:'3px',background:'linear-gradient(90deg,var(--gold),var(--gold2))',borderRadius:'2px',margin:'1rem auto 0'}}></div>
+    </div>
+  );
+}
+
+function OfferCard({ product, addToCart }) {
+  const discount = product.oldPrice ? Math.round((1 - product.price/product.oldPrice)*100) : 0;
+  const [added, setAdded] = useState(false);
+  const handle = () => { addToCart(product); setAdded(true); setTimeout(()=>setAdded(false),1500); };
+
+  return (
+    <div style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(201,168,76,0.2)',borderRadius:'16px',overflow:'hidden',display:'flex',gap:'0',transition:'all 0.3s',cursor:'pointer'}}
+      onMouseOver={e=>e.currentTarget.style.border='1px solid rgba(201,168,76,0.5)'}
+      onMouseOut={e=>e.currentTarget.style.border='1px solid rgba(201,168,76,0.2)'}>
+      <div style={{width:'140px',flexShrink:0,position:'relative'}}>
+        <img src={product.image} alt={product.name} style={{width:'100%',height:'100%',objectFit:'cover'}}
+          onError={e=>{ e.target.src='https://via.placeholder.com/140x160/2d1f0e/c9a84c?text=صورة'; }} />
+        {discount > 0 && (
+          <div style={{position:'absolute',top:'8px',right:'8px',background:'var(--red)',color:'white',borderRadius:'50%',width:'42px',height:'42px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.75rem',fontWeight:700}}>
+            -{discount}%
+          </div>
+        )}
+      </div>
+      <div style={{padding:'1.2rem',flex:1,display:'flex',flexDirection:'column',justifyContent:'space-between'}}>
+        <div>
+          <div style={{color:'var(--gold)',fontSize:'0.75rem',fontWeight:700,marginBottom:'4px'}}>{product.category}</div>
+          <h3 style={{fontFamily:'Playfair Display',fontSize:'1rem',color:'white',marginBottom:'0.5rem'}}>{product.name}</h3>
+          <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.8rem',lineHeight:1.5}}>{product.desc}</p>
+        </div>
+        <div style={{marginTop:'1rem'}}>
+          <div style={{display:'flex',alignItems:'center',gap:'8px',marginBottom:'0.8rem'}}>
+            <span style={{color:'var(--gold)',fontWeight:900,fontSize:'1.2rem'}}>{product.price.toLocaleString('ar-EG')} ج.م</span>
+            {product.oldPrice && <span style={{color:'rgba(255,255,255,0.4)',textDecoration:'line-through',fontSize:'0.9rem'}}>{product.oldPrice.toLocaleString('ar-EG')}</span>}
+          </div>
+          <button onClick={handle}
+            style={{background:added?'var(--green)':'linear-gradient(135deg,var(--gold),var(--gold2))',color:'var(--dark)',border:'none',padding:'8px 18px',borderRadius:'8px',fontFamily:'Tajawal',fontSize:'0.85rem',fontWeight:700,cursor:'pointer',transition:'all 0.3s',width:'100%'}}>
+            {added ? '✓ أُضيف!' : '+ إضافة للسلة'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NewsletterBanner() {
+  const [email, setEmail] = useState('');
+  const [sent, setSent] = useState(false);
+  return (
+    <div style={{background:'linear-gradient(135deg,var(--dark),#2d1f0e)',padding:'4rem 2rem',textAlign:'center'}}>
+      <div style={{maxWidth:'600px',margin:'0 auto'}}>
+        <div style={{fontSize:'2.5rem',marginBottom:'1rem'}}>💌</div>
+        <h2 style={{fontFamily:'Playfair Display',fontSize:'1.8rem',color:'white',marginBottom:'0.8rem'}}>اشترك في النشرة البريدية</h2>
+        <p style={{color:'var(--muted)',marginBottom:'2rem'}}>كن أول من يعلم بالعروض والمجموعات الجديدة</p>
+        {sent ? (
+          <div style={{color:'var(--gold)',fontSize:'1.1rem',fontWeight:700}}>✓ شكراً! تم تسجيلك بنجاح 🎉</div>
+        ) : (
+          <div style={{display:'flex',gap:'10px',maxWidth:'400px',margin:'0 auto'}}>
+            <input value={email} onChange={e=>setEmail(e.target.value)} placeholder="بريدك الإلكتروني..."
+              style={{flex:1,padding:'12px 16px',borderRadius:'10px',border:'1px solid rgba(201,168,76,0.3)',background:'rgba(255,255,255,0.05)',color:'white',fontFamily:'Tajawal',outline:'none',fontSize:'0.95rem'}} />
+            <button onClick={()=>{if(email)setSent(true)}}
+              style={{background:'linear-gradient(135deg,var(--gold),var(--gold2))',color:'var(--dark)',border:'none',padding:'12px 24px',borderRadius:'10px',fontFamily:'Tajawal',fontWeight:700,cursor:'pointer',whiteSpace:'nowrap'}}>
+              اشترك
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({ product, addToCart, toggleWishlist, wishlist }) {
+  const [added, setAdded] = useState(false);
+  const [hover, setHover] = useState(false);
+  const isWished = wishlist?.some(i => i.id === product.id);
+
+  const handle = () => {
+    addToCart(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1500);
+  };
+
+  const badgeColors = {
+    'جديد': {bg:'#27ae60',color:'white'},
+    'الأكثر مبيعاً': {bg:'var(--gold)',color:'var(--dark)'},
+    'حصري': {bg:'var(--brown)',color:'white'},
+    'محدود': {bg:'var(--red)',color:'white'},
+    'عرض': {bg:'var(--rose)',color:'white'},
+  };
+  const bc = badgeColors[product.badge] || {bg:'var(--gold)',color:'var(--dark)'};
+
+  return (
+    <div onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+      style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:hover?'0 20px 50px rgba(0,0,0,0.12)':'0 4px 20px rgba(0,0,0,0.06)',transition:'all 0.3s',transform:hover?'translateY(-6px)':'none',animation:'fadeIn 0.5s ease',position:'relative'}}>
+      <div style={{position:'relative',height:'300px',overflow:'hidden'}}>
+        <img src={product.image} alt={product.name} style={{width:'100%',height:'100%',objectFit:'cover',transition:'transform 0.5s',transform:hover?'scale(1.08)':'scale(1)'}}
+          onError={e=>{ e.target.src='https://via.placeholder.com/400x300/f0ebe2/9a8070?text='+encodeURIComponent(product.name); }} />
+        {/* Badges */}
+        <div style={{position:'absolute',top:'12px',right:'12px',display:'flex',flexDirection:'column',gap:'6px'}}>
+          <span style={{background:'var(--gold)',color:'var(--dark)',padding:'3px 10px',borderRadius:'20px',fontSize:'0.75rem',fontWeight:700}}>{product.category}</span>
+          {product.badge && <span style={{background:bc.bg,color:bc.color,padding:'3px 10px',borderRadius:'20px',fontSize:'0.72rem',fontWeight:700}}>{product.badge}</span>}
+        </div>
+        {/* Wishlist btn */}
+        {toggleWishlist && (
+          <button onClick={(e)=>{ e.stopPropagation(); toggleWishlist(product); }}
+            style={{position:'absolute',top:'12px',left:'12px',width:'36px',height:'36px',borderRadius:'50%',border:'none',background:'rgba(255,255,255,0.9)',cursor:'pointer',fontSize:'1.1rem',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',transition:'all 0.2s',transform:isWished?'scale(1.1)':'scale(1)'}}>
+            {isWished ? '❤️' : '🤍'}
+          </button>
+        )}
+        <div style={{position:'absolute',bottom:0,left:0,right:0,background:'linear-gradient(0deg,rgba(26,18,8,0.8),transparent)',padding:'1.5rem 1rem 1rem',opacity:hover?1:0,transition:'opacity 0.3s'}}>
+          <p style={{color:'rgba(255,255,255,0.85)',fontSize:'0.85rem',lineHeight:1.6}}>{product.desc}</p>
+        </div>
+      </div>
+      <div style={{padding:'1.2rem'}}>
+        <h3 style={{fontFamily:'Playfair Display',fontSize:'1.1rem',fontWeight:700,color:'var(--dark)',marginBottom:'0.5rem'}}>{product.name}</h3>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:'1rem'}}>
+          <div>
+            <div style={{fontSize:'1.4rem',fontWeight:900,color:'var(--gold)',fontFamily:'Tajawal'}}>{product.price.toLocaleString('ar-EG')} <span style={{fontSize:'0.8rem'}}>ج.م</span></div>
+            {product.oldPrice && <div style={{fontSize:'0.85rem',color:'var(--muted)',textDecoration:'line-through'}}>{product.oldPrice.toLocaleString('ar-EG')} ج.م</div>}
+            <div style={{fontSize:'0.75rem',color:product.stock<5?'var(--red)':'var(--muted)'}}>المخزون: {product.stock} قطعة {product.stock<5?'⚠️':''}</div>
+          </div>
+          <button onClick={handle}
+            style={{background:added?'var(--green)':'linear-gradient(135deg,var(--dark),var(--brown))',color:'white',border:'none',padding:'10px 20px',borderRadius:'10px',cursor:'pointer',fontFamily:'Tajawal',fontSize:'0.9rem',fontWeight:600,transition:'all 0.3s',transform:added?'scale(0.95)':'scale(1)'}}>
+            {added ? '✓ أُضيف!' : '+ السلة'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function WishlistPage({ wishlist, addToCart, toggleWishlist, setPage }) {
+  if (wishlist.length === 0) {
+    return (
+      <div style={{minHeight:'80vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'1.5rem',padding:'2rem'}}>
+        <div style={{fontSize:'6rem',animation:'float 3s ease-in-out infinite'}}>❤️</div>
+        <h2 style={{fontFamily:'Playfair Display',fontSize:'2rem',color:'var(--dark)'}}>المفضلة فارغة</h2>
+        <p style={{color:'var(--muted)',fontSize:'1.1rem'}}>أضف المنتجات التي تعجبك لتجدها هنا</p>
+        <button onClick={()=>setPage('home')} style={{background:'linear-gradient(135deg,var(--dark),var(--brown))',color:'white',border:'none',padding:'14px 32px',borderRadius:'50px',fontFamily:'Tajawal',fontSize:'1rem',fontWeight:700,cursor:'pointer'}}>
+          تصفح المنتجات
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div style={{maxWidth:'1200px',margin:'0 auto',padding:'2rem',minHeight:'80vh'}}>
+      <h1 style={{fontFamily:'Playfair Display',fontSize:'2rem',marginBottom:'0.5rem',color:'var(--dark)'}}>❤️ المفضلة</h1>
+      <p style={{color:'var(--muted)',marginBottom:'2rem'}}>{wishlist.length} منتج محفوظ</p>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(280px,1fr))',gap:'2rem'}}>
+        {wishlist.map(p => <ProductCard key={p.id} product={p} addToCart={addToCart} toggleWishlist={toggleWishlist} wishlist={wishlist} />)}
+      </div>
+    </div>
+  );
+}
+
+function CartPage({ cart, updateQty, removeFromCart, cartTotal, placeOrder, setPage, clearCart }) {
+  const [checkout, setCheckout] = useState(false);
+  const [form, setForm] = useState({ name:'', phone:'', address:'', city:'', notes:'' });
+  const [errors, setErrors] = useState({});
+  const [step, setStep] = useState(1); // 1=review, 2=shipping, 3=payment
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = 'الاسم مطلوب';
+    if (!form.phone.trim() || !/^[\d\s\+]{10,}$/.test(form.phone)) e.phone = 'رقم هاتف صحيح مطلوب';
+    if (!form.address.trim()) e.address = 'العنوان مطلوب';
+    if (!form.city.trim()) e.city = 'المدينة مطلوبة';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const submit = () => {
+    if (!validate()) return;
+    placeOrder(form);
+    setCheckout(false);
+    setForm({ name:'', phone:'', address:'', city:'', notes:'' });
+  };
+
+  if (cart.length === 0) {
+    return (
+      <div style={{minHeight:'80vh',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:'1.5rem',padding:'2rem'}}>
+        <div style={{fontSize:'6rem',animation:'float 3s ease-in-out infinite'}}>🛍️</div>
+        <h2 style={{fontFamily:'Playfair Display',fontSize:'2rem',color:'var(--dark)'}}>سلتك فارغة</h2>
+        <p style={{color:'var(--muted)',fontSize:'1.1rem'}}>ابدأ التسوق وأضف منتجات إلى سلتك</p>
+        <button onClick={()=>setPage('home')} style={{background:'linear-gradient(135deg,var(--dark),var(--brown))',color:'white',border:'none',padding:'14px 32px',borderRadius:'50px',fontFamily:'Tajawal',fontSize:'1rem',fontWeight:700,cursor:'pointer'}}>
+          تسوق الآن
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{maxWidth:'1200px',margin:'0 auto',padding:'2rem',minHeight:'80vh'}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:'2rem',flexWrap:'wrap',gap:'1rem'}}>
+        <h1 style={{fontFamily:'Playfair Display',fontSize:'2rem',color:'var(--dark)'}}>🛍️ سلة المشتريات</h1>
+        <button onClick={clearCart} style={{background:'none',border:'1px solid rgba(192,57,43,0.3)',color:'var(--red)',padding:'8px 16px',borderRadius:'8px',fontFamily:'Tajawal',cursor:'pointer',fontSize:'0.85rem'}}>
+          🗑 إفراغ السلة
+        </button>
+      </div>
+
+      <div style={{display:'flex',alignItems:'center',gap:'0',marginBottom:'2.5rem',background:'white',borderRadius:'12px',padding:'1rem 1.5rem',boxShadow:'0 2px 10px rgba(0,0,0,0.06)'}}>
+        {[['مراجعة السلة',1],['بيانات الشحن',2],['تأكيد الطلب',3]].map(([label,s],i)=>(
+          <React.Fragment key={s}>
+            <div style={{display:'flex',alignItems:'center',gap:'8px',flex:1,justifyContent:'center'}}>
+              <div style={{width:'30px',height:'30px',borderRadius:'50%',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:'0.85rem',
+                background: step>=s ? 'var(--gold)' : 'var(--light)',
+                color: step>=s ? 'var(--dark)' : 'var(--muted)',
+                transition:'all 0.3s'}}>
+                {step>s ? '✓' : s}
+              </div>
+              <span style={{fontSize:'0.85rem',color:step>=s?'var(--dark)':'var(--muted)',fontWeight:step===s?700:400}}>{label}</span>
+            </div>
+            {i < 2 && <div style={{height:'2px',flex:0.3,background:step>s?'var(--gold)':'var(--border)',transition:'all 0.3s'}}></div>}
+          </React.Fragment>
+        ))}
+      </div>
+      
+      <div style={{display:'grid',gridTemplateColumns:'1fr 360px',gap:'2rem',alignItems:'start'}}>
+        {/* Cart Items */}
+        <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+          {cart.map(item => (
+            <div key={item.id} style={{background:'white',borderRadius:'14px',padding:'1.2rem',display:'flex',gap:'1rem',alignItems:'center',boxShadow:'0 2px 15px rgba(0,0,0,0.06)',animation:'fadeIn 0.4s ease'}}>
+              <img src={item.image} alt={item.name} style={{width:'90px',height:'90px',objectFit:'cover',borderRadius:'10px'}}
+                onError={e=>{ e.target.src='https://via.placeholder.com/90/f0ebe2/9a8070?text=صورة'; }} />
+              <div style={{flex:1}}>
+                <h3 style={{fontFamily:'Playfair Display',fontSize:'1rem',color:'var(--dark)',marginBottom:'4px'}}>{item.name}</h3>
+                <div style={{color:'var(--gold)',fontWeight:700,fontSize:'0.95rem'}}>{item.price.toLocaleString('ar-EG')} ج.م / قطعة</div>
+                {item.badge && <span style={{fontSize:'0.72rem',background:'var(--light)',padding:'2px 8px',borderRadius:'10px',color:'var(--muted)'}}>{item.badge}</span>}
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+                <button onClick={()=>updateQty(item.id,item.qty-1)} style={qBtnStyle}>−</button>
+                <span style={{fontWeight:700,fontSize:'1.1rem',minWidth:'24px',textAlign:'center'}}>{item.qty}</span>
+                <button onClick={()=>updateQty(item.id,item.qty+1)} style={qBtnStyle}>+</button>
+              </div>
+              <div style={{textAlign:'left',minWidth:'100px'}}>
+                <div style={{fontWeight:700,color:'var(--dark)',fontSize:'1rem'}}>{(item.price*item.qty).toLocaleString('ar-EG')} ج.م</div>
+                <button onClick={()=>removeFromCart(item.id)} style={{background:'none',border:'none',color:'var(--red)',cursor:'pointer',fontSize:'0.8rem',marginTop:'6px',fontFamily:'Tajawal',padding:'4px 0'}}>🗑 حذف</button>
+              </div>
+            </div>
+          ))}
+
+          <div style={{background:'white',borderRadius:'14px',padding:'1.2rem',boxShadow:'0 2px 15px rgba(0,0,0,0.06)'}}>
+            <div style={{fontSize:'0.9rem',fontWeight:600,color:'var(--dark)',marginBottom:'0.8rem'}}>🏷️ كود خصم</div>
+            <div style={{display:'flex',gap:'10px'}}>
+              <input placeholder="أدخل كود الخصم..." style={{flex:1,padding:'10px 14px',border:'1px solid var(--border)',borderRadius:'8px',fontFamily:'Tajawal',fontSize:'0.9rem',outline:'none',color:'var(--text)'}} />
+              <button style={{padding:'10px 20px',background:'var(--light)',border:'1px solid var(--border)',borderRadius:'8px',fontFamily:'Tajawal',cursor:'pointer',fontWeight:600,color:'var(--text)',fontSize:'0.9rem'}}>تطبيق</button>
+            </div>
+          </div>
+        </div>
+
+        <div style={{background:'white',borderRadius:'16px',padding:'1.5rem',boxShadow:'0 4px 20px rgba(0,0,0,0.08)',position:'sticky',top:'90px'}}>
+          <h3 style={{fontFamily:'Playfair Display',fontSize:'1.3rem',marginBottom:'1.5rem',color:'var(--dark)',borderBottom:'1px solid var(--border)',paddingBottom:'1rem'}}>ملخص الطلب</h3>
+          <div style={{display:'flex',flexDirection:'column',gap:'0.8rem',marginBottom:'1rem'}}>
+            <SummaryRow label="عدد القطع" value={`${cart.reduce((s,i)=>s+i.qty,0)} قطعة`} />
+            <SummaryRow label="المجموع الجزئي" value={`${cartTotal.toLocaleString('ar-EG')} ج.م`} />
+            <SummaryRow label="الشحن" value="مجاني" valueColor="var(--green)" />
+            <SummaryRow label="الضريبة (14%)" value={`${Math.round(cartTotal*0.14).toLocaleString('ar-EG')} ج.م`} />
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',fontSize:'1.2rem',fontWeight:700,color:'var(--dark)',borderTop:'2px solid var(--border)',paddingTop:'1rem',marginTop:'0.5rem'}}>
+            <span>الإجمالي</span>
+            <span style={{color:'var(--gold)'}}>{Math.round(cartTotal*1.14).toLocaleString('ar-EG')} ج.م</span>
+          </div>
+
+          <div style={{marginTop:'1.2rem',padding:'1rem',background:'var(--light)',borderRadius:'10px'}}>
+            <div style={{fontSize:'0.8rem',color:'var(--muted)',marginBottom:'0.6rem',fontWeight:600}}>طرق الدفع المتاحة</div>
+            <div style={{display:'flex',gap:'8px',flexWrap:'wrap'}}>
+              {['💵 كاش','💳 فيزا','📱 فودافون كاش','🏦 إنستاباي'].map(m=>(
+                <span key={m} style={{background:'white',border:'1px solid var(--border)',borderRadius:'6px',padding:'4px 10px',fontSize:'0.75rem',color:'var(--text)'}}>{m}</span>
+              ))}
+            </div>
+          </div>
+
+          <button onClick={()=>setCheckout(true)}
+            style={{width:'100%',marginTop:'1.5rem',background:'linear-gradient(135deg,var(--dark),var(--brown))',color:'white',border:'none',padding:'14px',borderRadius:'12px',fontFamily:'Tajawal',fontSize:'1rem',fontWeight:700,cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,0.2)'}}>
+            إتمام الطلب →
+          </button>
+          <button onClick={()=>setPage('home')} style={{width:'100%',marginTop:'0.8rem',background:'transparent',border:'1px solid var(--border)',color:'var(--muted)',padding:'10px',borderRadius:'12px',fontFamily:'Tajawal',fontSize:'0.9rem',cursor:'pointer'}}>
+            ← متابعة التسوق
+          </button>
+
+          <div style={{marginTop:'1rem',display:'flex',alignItems:'center',justifyContent:'center',gap:'6px',color:'var(--muted)',fontSize:'0.8rem'}}>
+            <span>🔒</span><span>دفع آمن ومشفر بالكامل</span>
+          </div>
+        </div>
+      </div>
+
+    
+      {checkout && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem',backdropFilter:'blur(4px)'}}
+          onClick={e=>{ if(e.target===e.currentTarget) setCheckout(false); }}>
+          <div style={{background:'white',borderRadius:'20px',padding:'2rem',maxWidth:'520px',width:'100%',maxHeight:'90vh',overflowY:'auto',animation:'fadeIn 0.3s ease'}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:'1.5rem'}}>
+              <h2 style={{fontFamily:'Playfair Display',fontSize:'1.5rem',color:'var(--dark)'}}>🚚 بيانات الشحن</h2>
+              <button onClick={()=>setCheckout(false)} style={{background:'none',border:'none',fontSize:'1.5rem',cursor:'pointer',color:'var(--muted)'}}>✕</button>
+            </div>
+            
+            <div style={{display:'flex',flexDirection:'column',gap:'1rem'}}>
+              {[
+                {k:'name', label:'الاسم الكامل', placeholder:'اكتب اسمك...', type:'text', icon:'👤'},
+                {k:'phone', label:'رقم الهاتف', placeholder:'01xxxxxxxxx', type:'tel', icon:'📱'},
+                {k:'city', label:'المدينة / المحافظة', placeholder:'المنيا...', type:'text', icon:'🏙️'},
+                {k:'address', label:'العنوان بالتفصيل', placeholder:'الشارع، المبنى، الدور...', type:'text', icon:'📍'},
+                {k:'notes', label:'ملاحظات (اختياري)', placeholder:'أي ملاحظات ...', type:'text', icon:'📝'},
+              ].map(f => (
+                <div key={f.k}>
+                  <label style={{display:'flex',alignItems:'center',gap:'6px',marginBottom:'6px',fontSize:'0.9rem',fontWeight:600,color:'var(--text)'}}>
+                    <span>{f.icon}</span>{f.label}
+                  </label>
+                  {f.k === 'address' || f.k === 'notes' ? (
+                    <textarea value={form[f.k]} onChange={e=>setForm({...form,[f.k]:e.target.value})}
+                      placeholder={f.placeholder} rows={3}
+                      style={{width:'100%',padding:'10px 14px',border:`1px solid ${errors[f.k]?'var(--red)':'var(--border)'}`,borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',outline:'none',resize:'vertical',color:'var(--text)'}} />
+                  ) : (
+                    <input type={f.type} value={form[f.k]} onChange={e=>setForm({...form,[f.k]:e.target.value})}
+                      placeholder={f.placeholder}
+                      style={{width:'100%',padding:'10px 14px',border:`1px solid ${errors[f.k]?'var(--red)':'var(--border)'}`,borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',outline:'none',color:'var(--text)'}} />
+                  )}
+                  {errors[f.k] && <div style={{color:'var(--red)',fontSize:'0.8rem',marginTop:'4px'}}>⚠ {errors[f.k]}</div>}
+                </div>
+              ))}
+            </div>
+
+            <div style={{background:'var(--light)',borderRadius:'10px',padding:'1rem',margin:'1.2rem 0',border:'1px solid var(--border)'}}>
+              <div style={{display:'flex',justifyContent:'space-between',fontWeight:700,color:'var(--dark)'}}>
+                <span>إجمالي الطلب:</span>
+                <span style={{color:'var(--gold)'}}>{Math.round(cartTotal*1.14).toLocaleString('ar-EG')} ج.م</span>
+              </div>
+              <div style={{fontSize:'0.8rem',color:'var(--muted)',marginTop:'4px'}}>يشمل الضريبة — الدفع عند الاستلام</div>
+            </div>
+
+            <button onClick={submit}
+              style={{width:'100%',background:'linear-gradient(135deg,var(--dark),var(--brown))',color:'white',border:'none',padding:'14px',borderRadius:'12px',fontFamily:'Tajawal',fontSize:'1rem',fontWeight:700,cursor:'pointer',boxShadow:'0 6px 20px rgba(0,0,0,0.2)'}}>
+              🛍️ تأكيد الطلب
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SummaryRow({ label, value, valueColor }) {
+  return (
+    <div style={{display:'flex',justifyContent:'space-between',color:'var(--muted)',fontSize:'0.9rem'}}>
+      <span>{label}</span>
+      <span style={{color:valueColor||'var(--text)',fontWeight:valueColor?600:400}}>{value}</span>
+    </div>
+  );
+}
+
+const qBtnStyle = {
+  width:'32px',height:'32px',borderRadius:'50%',border:'1px solid var(--border)',
+  background:'var(--light)',cursor:'pointer',fontSize:'1.1rem',fontWeight:700,
+  display:'flex',alignItems:'center',justifyContent:'center',color:'var(--text)',
+  fontFamily:'Tajawal',transition:'all 0.2s'
+};
+
+// Admin
+function AdminPage({ products, orders, addProduct, deleteProduct, updateProduct, confirmOrder, cancelOrder, adminPass, showToast }) {
+  const [auth, setAuth] = useState(() => sessionStorage.getItem('adminAuth')==='1');
+  const [pass, setPass] = useState('');
+  const [tab, setTab] = useState('orders');
+
+  const login = () => {
+    if (pass === adminPass) { setAuth(true); sessionStorage.setItem('adminAuth','1'); }
+    else showToast('كلمة المرور غلط!', 'error');
+  };
+
+  const stats = {
+    totalRevenue: orders.filter(o=>o.status==='confirmed').reduce((s,o)=>s+o.total,0),
+    pending: orders.filter(o=>o.status==='pending').length,
+    confirmed: orders.filter(o=>o.status==='confirmed').length,
+  };
+
+  if (!auth) {
+    return (
+      <div style={{minHeight:'80vh',display:'flex',alignItems:'center',justifyContent:'center',padding:'2rem'}}>
+        <div style={{background:'white',borderRadius:'20px',padding:'2.5rem',maxWidth:'400px',width:'100%',boxShadow:'0 10px 40px rgba(0,0,0,0.1)',textAlign:'center'}}>
+          <div style={{fontSize:'3rem',marginBottom:'1rem'}}>🔐</div>
+          <h2 style={{fontFamily:'Playfair Display',fontSize:'1.8rem',color:'var(--dark)',marginBottom:'0.5rem'}}>لوحة الإدارة</h2>
+          <p style={{color:'var(--muted)',marginBottom:'2rem',fontSize:'0.9rem'}}>ادخل كلمة المرور للدخول</p>
+          <input type="password" value={pass} onChange={e=>setPass(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&login()}
+            placeholder="كلمة المرور..."
+            style={{width:'100%',padding:'12px 16px',border:'1px solid var(--border)',borderRadius:'10px',fontFamily:'Tajawal',fontSize:'1rem',outline:'none',marginBottom:'1rem',textAlign:'center',color:'var(--text)'}} />
+          <button onClick={login}
+            style={{width:'100%',background:'linear-gradient(135deg,var(--dark),var(--brown))',color:'white',border:'none',padding:'12px',borderRadius:'10px',fontFamily:'Tajawal',fontSize:'1rem',fontWeight:700,cursor:'pointer'}}>
+            دخول
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{minHeight:'100vh',background:'#f5f0ea'}}>
+      <div style={{background:'var(--dark)',color:'white',padding:'1.5rem 2rem'}}>
+        <h1 style={{fontFamily:'Playfair Display',fontSize:'1.5rem',color:'var(--gold)',marginBottom:'1.2rem'}}>⚙️ لوحة تحكم LUXE</h1>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(150px,1fr))',gap:'1rem',maxWidth:'800px'}}>
+          {[
+            {label:'إجمالي الطلبات', value:orders.length, icon:'📦', color:'var(--gold)'},
+            {label:'قيد الانتظار', value:stats.pending, icon:'⏳', color:'#ffaa00'},
+            {label:'مؤكدة', value:stats.confirmed, icon:'✅', color:'var(--green)'},
+            {label:'المنتجات', value:products.length, icon:'🛍️', color:'var(--rose)'},
+            {label:'الإيرادات', value:`${stats.totalRevenue.toLocaleString('ar-EG')} ج`, icon:'💰', color:'var(--gold2)'},
+          ].map(s=>(
+            <div key={s.label} style={{background:'rgba(255,255,255,0.05)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'12px',padding:'1rem',textAlign:'center'}}>
+              <div style={{fontSize:'1.5rem',marginBottom:'4px'}}>{s.icon}</div>
+              <div style={{fontSize:'1.4rem',fontWeight:700,color:s.color}}>{s.value}</div>
+              <div style={{fontSize:'0.75rem',color:'var(--muted)'}}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div style={{background:'white',borderBottom:'1px solid var(--border)',padding:'0 2rem',display:'flex',gap:'0',overflowX:'auto'}}>
+        {[['orders','📦 الطلبات'],['products','🛍️ المنتجات'],['add','➕ إضافة منتج']].map(([k,v])=>(
+          <button key={k} onClick={()=>setTab(k)}
+            style={{padding:'1rem 1.5rem',border:'none',borderBottom:tab===k?'3px solid var(--gold)':'3px solid transparent',background:'none',cursor:'pointer',fontFamily:'Tajawal',fontSize:'0.95rem',fontWeight:tab===k?700:400,color:tab===k?'var(--gold)':'var(--muted)',transition:'all 0.2s',whiteSpace:'nowrap'}}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      <div style={{maxWidth:'1200px',margin:'0 auto',padding:'2rem'}}>
+        {tab === 'orders' && <OrdersTab orders={orders} confirmOrder={confirmOrder} cancelOrder={cancelOrder} />}
+        {tab === 'products' && <ProductsTab products={products} deleteProduct={deleteProduct} />}
+        {tab === 'add' && <AddProductTab addProduct={addProduct} setTab={setTab} showToast={showToast} products={products} />}
+      </div>
+    </div>
+  );
+}
+
+function OrdersTab({ orders, confirmOrder, cancelOrder }) {
+  const [filter, setFilter] = useState('all');
+  const filtered = orders.filter(o => filter==='all' || o.status===filter);
+  const statusColor = { pending:'#ffaa00', confirmed:'var(--green)', cancelled:'var(--red)' };
+  const statusLabel = { pending:'⏳ قيد الانتظار', confirmed:'✅ مؤكد', cancelled:'❌ ملغي' };
+
+  return (
+    <div>
+      <div style={{display:'flex',gap:'10px',marginBottom:'1.5rem',flexWrap:'wrap'}}>
+        {[['all',`الكل (${orders.length})`],['pending','انتظار'],['confirmed','مؤكدة'],['cancelled','ملغية']].map(([k,v])=>(
+          <button key={k} onClick={()=>setFilter(k)}
+            style={{padding:'8px 20px',borderRadius:'20px',border:'1px solid',borderColor:filter===k?'var(--gold)':'var(--border)',background:filter===k?'var(--gold)':'white',color:filter===k?'var(--dark)':'var(--muted)',fontFamily:'Tajawal',cursor:'pointer',fontWeight:filter===k?700:400}}>
+            {v}
+          </button>
+        ))}
+      </div>
+
+      {filtered.length === 0 ? (
+        <div style={{textAlign:'center',padding:'4rem',color:'var(--muted)'}}>
+          <div style={{fontSize:'3rem',marginBottom:'1rem'}}>📭</div>
+          <div style={{fontSize:'1.2rem'}}>لا توجد طلبات</div>
+        </div>
+      ) : (
+        <div style={{display:'flex',flexDirection:'column',gap:'1.5rem'}}>
+          {filtered.map(order => (
+            <div key={order.id} style={{background:'white',borderRadius:'16px',overflow:'hidden',boxShadow:'0 2px 15px rgba(0,0,0,0.06)',border:`2px solid ${order.status==='pending'?'rgba(255,170,0,0.3)':order.status==='confirmed'?'rgba(39,174,96,0.3)':'rgba(192,57,43,0.3)'}`,animation:'fadeIn 0.4s ease'}}>
+              <div style={{background:'var(--light)',padding:'1rem 1.5rem',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'0.5rem'}}>
+                <div>
+                  <span style={{fontWeight:700,color:'var(--dark)',fontSize:'0.95rem'}}>طلب #{String(order.id).slice(-6)}</span>
+                  <span style={{color:'var(--muted)',fontSize:'0.8rem',marginRight:'1rem'}}>{order.date} — {order.time}</span>
+                </div>
+                <div style={{display:'flex',alignItems:'center',gap:'1rem'}}>
+                  <span style={{background:statusColor[order.status],color:'white',padding:'4px 14px',borderRadius:'20px',fontSize:'0.8rem',fontWeight:600}}>
+                    {statusLabel[order.status]}
+                  </span>
+                  <span style={{fontWeight:700,color:'var(--gold)',fontSize:'1.1rem'}}>{order.total.toLocaleString('ar-EG')} ج.م</span>
+                </div>
+              </div>
+              
+              <div style={{padding:'1.5rem',display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1.5rem'}}>
+                <div>
+                  <h4 style={{color:'var(--muted)',fontSize:'0.8rem',letterSpacing:'1px',marginBottom:'0.8rem'}}>بيانات العميل</h4>
+                  <div style={{display:'flex',flexDirection:'column',gap:'6px'}}>
+                    <InfoRow icon="👤" label="الاسم" value={order.customer.name} />
+                    <InfoRow icon="📱" label="الهاتف" value={order.customer.phone} />
+                    <InfoRow icon="🏙️" label="المدينة" value={order.customer.city} />
+                    <InfoRow icon="📍" label="العنوان" value={order.customer.address} />
+                    {order.customer.notes && <InfoRow icon="📝" label="ملاحظات" value={order.customer.notes} />}
+                  </div>
+                </div>
+                <div>
+                  <h4 style={{color:'var(--muted)',fontSize:'0.8rem',letterSpacing:'1px',marginBottom:'0.8rem'}}>المنتجات المطلوبة</h4>
+                  <div style={{display:'flex',flexDirection:'column',gap:'8px'}}>
+                    {order.items.map(item => (
+                      <div key={item.id} style={{display:'flex',alignItems:'center',gap:'10px',padding:'8px',background:'var(--light)',borderRadius:'8px'}}>
+                        <img src={item.image} alt={item.name} style={{width:'40px',height:'40px',objectFit:'cover',borderRadius:'6px'}}
+                          onError={e=>{ e.target.src='https://via.placeholder.com/40/f0ebe2/9a8070?text=×'; }} />
+                        <div style={{flex:1}}>
+                          <div style={{fontSize:'0.85rem',fontWeight:600,color:'var(--dark)'}}>{item.name}</div>
+                          <div style={{fontSize:'0.75rem',color:'var(--muted)'}}>× {item.qty} — {(item.price*item.qty).toLocaleString('ar-EG')} ج.م</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {order.status === 'pending' && (
+                <div style={{padding:'1rem 1.5rem',borderTop:'1px solid var(--border)',display:'flex',gap:'1rem',justifyContent:'flex-end'}}>
+                  <button onClick={()=>cancelOrder(order.id)}
+                    style={{padding:'9px 24px',borderRadius:'8px',border:'1px solid var(--red)',background:'white',color:'var(--red)',fontFamily:'Tajawal',fontSize:'0.9rem',fontWeight:600,cursor:'pointer'}}>
+                    ❌ إلغاء
+                  </button>
+                  <button onClick={()=>confirmOrder(order.id)}
+                    style={{padding:'9px 24px',borderRadius:'8px',border:'none',background:'var(--green)',color:'white',fontFamily:'Tajawal',fontSize:'0.9rem',fontWeight:600,cursor:'pointer',boxShadow:'0 4px 12px rgba(39,174,96,0.3)'}}>
+                    ✅ تأكيد الطلب
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function InfoRow({ icon, label, value }) {
+  return (
+    <div style={{display:'flex',gap:'8px',alignItems:'flex-start',fontSize:'0.85rem'}}>
+      <span>{icon}</span>
+      <span style={{color:'var(--muted)',minWidth:'60px'}}>{label}:</span>
+      <span style={{color:'var(--dark)',fontWeight:600,flex:1}}>{value}</span>
+    </div>
+  );
+}
+
+function ProductsTab({ products, deleteProduct }) {
+  const [confirm, setConfirm] = useState(null);
+  const [search, setSearch] = useState('');
+  const filtered = products.filter(p => p.name.includes(search) || p.category.includes(search));
+
+  return (
+    <div>
+      <div style={{marginBottom:'1.5rem',display:'flex',alignItems:'center',gap:'1rem'}}>
+        <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="🔍 ابحث في المنتجات..."
+          style={{flex:1,maxWidth:'300px',padding:'10px 16px',border:'1px solid var(--border)',borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.9rem',background:'white',outline:'none',color:'var(--text)'}} />
+        <span style={{color:'var(--muted)',fontSize:'0.9rem'}}>{filtered.length} منتج</span>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(250px,1fr))',gap:'1.5rem'}}>
+        {filtered.map(p => (
+          <div key={p.id} style={{background:'white',borderRadius:'14px',overflow:'hidden',boxShadow:'0 2px 15px rgba(0,0,0,0.06)',animation:'fadeIn 0.4s ease'}}>
+            <div style={{position:'relative',height:'180px'}}>
+              <img src={p.image} alt={p.name} style={{width:'100%',height:'100%',objectFit:'cover'}}
+                onError={e=>{ e.target.src='https://via.placeholder.com/250x180/f0ebe2/9a8070?text='+encodeURIComponent(p.name); }} />
+              <div style={{position:'absolute',top:'8px',right:'8px',display:'flex',flexDirection:'column',gap:'4px'}}>
+                <span style={{background:'var(--gold)',color:'var(--dark)',padding:'3px 10px',borderRadius:'15px',fontSize:'0.72rem',fontWeight:700}}>{p.category}</span>
+                {p.badge && <span style={{background:'var(--dark)',color:'white',padding:'3px 10px',borderRadius:'15px',fontSize:'0.7rem',fontWeight:600}}>{p.badge}</span>}
+              </div>
+              {p.featured && <div style={{position:'absolute',top:'8px',left:'8px',background:'var(--rose)',color:'white',padding:'3px 8px',borderRadius:'10px',fontSize:'0.68rem',fontWeight:700}}>⭐ مميز</div>}
+            </div>
+            <div style={{padding:'1rem'}}>
+              <h3 style={{fontFamily:'Playfair Display',fontSize:'0.95rem',color:'var(--dark)',marginBottom:'6px'}}>{p.name}</h3>
+              <div style={{fontSize:'0.8rem',color:'var(--muted)',marginBottom:'8px',lineHeight:1.4}}>{p.desc}</div>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                <div>
+                  <div style={{fontWeight:700,color:'var(--gold)'}}>{p.price.toLocaleString('ar-EG')} ج.م</div>
+                  <div style={{fontSize:'0.75rem',color:p.stock<5?'var(--red)':'var(--muted)'}}>مخزون: {p.stock}</div>
+                </div>
+                <button onClick={()=>setConfirm(p.id)}
+                  style={{background:'rgba(192,57,43,0.1)',border:'1px solid rgba(192,57,43,0.3)',color:'var(--red)',padding:'7px 14px',borderRadius:'8px',fontFamily:'Tajawal',fontSize:'0.8rem',cursor:'pointer',fontWeight:600}}>
+                  🗑 حذف
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {confirm && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.5)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center'}}>
+          <div style={{background:'white',borderRadius:'16px',padding:'2rem',maxWidth:'380px',textAlign:'center',boxShadow:'0 20px 60px rgba(0,0,0,0.2)'}}>
+            <div style={{fontSize:'3rem',marginBottom:'1rem'}}>⚠️</div>
+            <h3 style={{fontFamily:'Playfair Display',fontSize:'1.3rem',marginBottom:'0.5rem'}}>تأكيد الحذف</h3>
+            <p style={{color:'var(--muted)',marginBottom:'1.5rem'}}>هل أنت متأكد من حذف هذا المنتج؟ لا يمكن التراجع.</p>
+            <div style={{display:'flex',gap:'1rem',justifyContent:'center'}}>
+              <button onClick={()=>setConfirm(null)} style={{padding:'10px 24px',borderRadius:'8px',border:'1px solid var(--border)',background:'white',color:'var(--muted)',fontFamily:'Tajawal',cursor:'pointer',fontWeight:600}}>إلغاء</button>
+              <button onClick={()=>{ deleteProduct(confirm); setConfirm(null); }}
+                style={{padding:'10px 24px',borderRadius:'8px',border:'none',background:'var(--red)',color:'white',fontFamily:'Tajawal',cursor:'pointer',fontWeight:600}}>حذف</button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AddProductTab({ addProduct, setTab, showToast, products }) {
+  const [form, setForm] = useState({ name:'', price:'', category:'', image:'', desc:'', stock:'', badge:'جديد', featured:false, oldPrice:'' });
+  const [errors, setErrors] = useState({});
+  const [preview, setPreview] = useState(false);
+
+  const cats = ['فساتين','بنطلونات','اكسسوار','عبايات','أحذية','حقائب','جاكيتات','إكسسوار','تنانير'];
+  const badges = ['جديد','الأكثر مبيعاً','حصري','محدود','عرض',''];
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = 'اسم المنتج مطلوب';
+    if (!form.price || isNaN(form.price) || +form.price <= 0) e.price = 'سعر صحيح مطلوب';
+    if (!form.category) e.category = 'الفئة مطلوبة';
+    if (!form.image.trim()) e.image = 'رابط الصورة مطلوب';
+    if (!form.desc.trim()) e.desc = 'وصف المنتج مطلوب';
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const submit = () => {
+    if (!validate()) return;
+    addProduct({ ...form, price: parseFloat(form.price), oldPrice: form.oldPrice ? parseFloat(form.oldPrice) : null });
+    setForm({ name:'', price:'', category:'', image:'', desc:'', stock:'', badge:'جديد', featured:false, oldPrice:'' });
+    setErrors({});
+    setTab('products');
+  };
+
+  const inp = (field, label, placeholder, type='text') => (
+    <div>
+      <label style={{display:'block',marginBottom:'6px',fontSize:'0.9rem',fontWeight:600,color:'var(--text)'}}>{label}</label>
+      <input type={type} value={form[field]} onChange={e=>setForm({...form,[field]:e.target.value})}
+        placeholder={placeholder}
+        style={{width:'100%',padding:'11px 14px',border:`1px solid ${errors[field]?'var(--red)':'var(--border)'}`,borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',outline:'none',color:'var(--text)',background:'white'}} />
+      {errors[field] && <div style={{color:'var(--red)',fontSize:'0.8rem',marginTop:'4px'}}>⚠ {errors[field]}</div>}
+    </div>
+  );
+
+  return (
+    <div style={{display:'grid',gridTemplateColumns:'1fr 380px',gap:'2rem',alignItems:'start'}}>
+      <div style={{background:'white',borderRadius:'16px',padding:'2rem',boxShadow:'0 2px 15px rgba(0,0,0,0.06)'}}>
+        <h2 style={{fontFamily:'Playfair Display',fontSize:'1.5rem',color:'var(--dark)',marginBottom:'1.5rem',borderBottom:'1px solid var(--border)',paddingBottom:'1rem'}}>➕ إضافة منتج جديد</h2>
+        
+        <div style={{display:'flex',flexDirection:'column',gap:'1.2rem'}}>
+          {inp('name','اسم المنتج','مثال: فستان الأناقة الذهبي')}
+          
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr 1fr',gap:'1rem'}}>
+            {inp('price','السعر (ج.م)','850','number')}
+            {inp('oldPrice','السعر قبل التخفيض','1200','number')}
+            {inp('stock','الكمية المتاحة','20','number')}
+          </div>
+
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
+            <div>
+              <label style={{display:'block',marginBottom:'6px',fontSize:'0.9rem',fontWeight:600,color:'var(--text)'}}>الفئة / القسم</label>
+              <select value={form.category} onChange={e=>setForm({...form,category:e.target.value})}
+                style={{width:'100%',padding:'11px 14px',border:`1px solid ${errors.category?'var(--red)':'var(--border)'}`,borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',outline:'none',color:'var(--text)',background:'white'}}>
+                <option value="">اختر الفئة...</option>
+                {cats.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+              {errors.category && <div style={{color:'var(--red)',fontSize:'0.8rem',marginTop:'4px'}}>⚠ {errors.category}</div>}
+            </div>
+            <div>
+              <label style={{display:'block',marginBottom:'6px',fontSize:'0.9rem',fontWeight:600,color:'var(--text)'}}>الشارة / Badge</label>
+              <select value={form.badge} onChange={e=>setForm({...form,badge:e.target.value})}
+                style={{width:'100%',padding:'11px 14px',border:'1px solid var(--border)',borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',outline:'none',color:'var(--text)',background:'white'}}>
+                {badges.map(b => <option key={b} value={b}>{b||'بدون شارة'}</option>)}
+              </select>
+            </div>
+          </div>
+
+          {inp('image','رابط صورة المنتج (URL)','https://images.unsplash.com/...')}
+          
+          <div>
+            <label style={{display:'block',marginBottom:'6px',fontSize:'0.9rem',fontWeight:600,color:'var(--text)'}}>وصف المنتج</label>
+            <textarea value={form.desc} onChange={e=>setForm({...form,desc:e.target.value})}
+              placeholder="اكتب وصفاً جذاباً للمنتج..." rows={3}
+              style={{width:'100%',padding:'11px 14px',border:`1px solid ${errors.desc?'var(--red)':'var(--border)'}`,borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',outline:'none',resize:'vertical',color:'var(--text)'}} />
+            {errors.desc && <div style={{color:'var(--red)',fontSize:'0.8rem',marginTop:'4px'}}>⚠ {errors.desc}</div>}
+          </div>
+
+          {/* Featured toggle */}
+          <div style={{display:'flex',alignItems:'center',gap:'12px',padding:'12px 16px',background:'var(--light)',borderRadius:'10px'}}>
+            <label style={{display:'flex',alignItems:'center',gap:'10px',cursor:'pointer',flex:1}}>
+              <div onClick={()=>setForm({...form,featured:!form.featured})}
+                style={{width:'44px',height:'24px',borderRadius:'12px',background:form.featured?'var(--gold)':'var(--border)',position:'relative',transition:'background 0.3s',cursor:'pointer',flexShrink:0}}>
+                <div style={{position:'absolute',top:'3px',width:'18px',height:'18px',borderRadius:'50%',background:'white',boxShadow:'0 1px 4px rgba(0,0,0,0.2)',transition:'all 0.3s',right:form.featured?'3px':'23px'}}></div>
+              </div>
+              <span style={{fontSize:'0.9rem',fontWeight:600,color:'var(--text)'}}>⭐ منتج مميز (يظهر في قسم الأكثر مبيعاً)</span>
+            </label>
+          </div>
+
+          <div style={{display:'flex',gap:'1rem'}}>
+            <button onClick={()=>setPreview(true)}
+              style={{flex:1,padding:'12px',border:'1px solid var(--gold)',background:'white',color:'var(--gold)',borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',fontWeight:600,cursor:'pointer'}}>
+              👁 معاينة
+            </button>
+            <button onClick={submit}
+              style={{flex:2,padding:'12px',border:'none',background:'linear-gradient(135deg,var(--dark),var(--brown))',color:'white',borderRadius:'10px',fontFamily:'Tajawal',fontSize:'0.95rem',fontWeight:700,cursor:'pointer',boxShadow:'0 4px 15px rgba(0,0,0,0.2)'}}>
+              ✓ إضافة المنتج ونشره فوراً
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <div style={{background:'linear-gradient(135deg,var(--dark),var(--brown))',borderRadius:'16px',padding:'1.5rem',color:'white',marginBottom:'1rem'}}>
+          <h3 style={{fontFamily:'Playfair Display',fontSize:'1.1rem',marginBottom:'1rem',color:'var(--gold2)'}}>💡 نصائح للصور</h3>
+          <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:'8px',fontSize:'0.85rem',lineHeight:1.7}}>
+            <li>• استخدم صور Unsplash مجانية</li>
+            <li>• الأبعاد المثالية: 400×500 بكسل</li>
+            <li>• خلفية بيضاء أو ناعمة أفضل</li>
+            <li>• جودة عالية تزيد المبيعات</li>
+          </ul>
+        </div>
+        <div style={{background:'white',borderRadius:'16px',padding:'1.5rem',boxShadow:'0 2px 15px rgba(0,0,0,0.06)',marginBottom:'1rem'}}>
+          <h3 style={{fontFamily:'Playfair Display',fontSize:'1rem',marginBottom:'1rem',color:'var(--dark)'}}>📊 إحصائيات</h3>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'1rem'}}>
+            {[['المنتجات',products?.length||0,'🛍️'],['الفئات',[...new Set(products?.map(p=>p.category)||[])].length,'📁'],['المميزة',products?.filter(p=>p.featured).length||0,'⭐'],['عروض',products?.filter(p=>p.badge==='عرض'||p.oldPrice).length||0,'🏷️']].map(([l,v,icon])=>(
+              <div key={l} style={{background:'var(--light)',borderRadius:'10px',padding:'0.8rem',textAlign:'center'}}>
+                <div style={{fontSize:'1.2rem',marginBottom:'2px'}}>{icon}</div>
+                <div style={{fontSize:'1.5rem',fontWeight:700,color:'var(--gold)'}}>{v}</div>
+                <div style={{fontSize:'0.75rem',color:'var(--muted)'}}>{l}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div style={{background:'rgba(39,174,96,0.08)',border:'1px solid rgba(39,174,96,0.2)',borderRadius:'12px',padding:'1rem'}}>
+          <div style={{fontWeight:700,color:'var(--green)',marginBottom:'4px',fontSize:'0.9rem'}}>✅ المنتج يُنشر فوراً</div>
+          <div style={{color:'var(--muted)',fontSize:'0.82rem',lineHeight:1.5}}>بعد الإضافة سيظهر المنتج للمستخدمين فوراً في جميع الأقسام المناسبة</div>
+        </div>
+      </div>
+
+      {preview && (
+        <div style={{position:'fixed',inset:0,background:'rgba(0,0,0,0.6)',zIndex:500,display:'flex',alignItems:'center',justifyContent:'center',padding:'1rem'}}>
+          <div style={{background:'white',borderRadius:'20px',padding:'2rem',maxWidth:'380px',width:'100%'}}>
+            <div style={{display:'flex',justifyContent:'space-between',marginBottom:'1rem'}}>
+              <h3 style={{fontFamily:'Playfair Display',fontSize:'1.2rem'}}>معاينة المنتج</h3>
+              <button onClick={()=>setPreview(false)} style={{background:'none',border:'none',fontSize:'1.3rem',cursor:'pointer',color:'var(--muted)'}}>✕</button>
+            </div>
+            <div style={{background:'var(--light)',borderRadius:'12px',overflow:'hidden'}}>
+              {form.image && <img src={form.image} alt="preview" style={{width:'100%',height:'200px',objectFit:'cover'}}
+                onError={e=>{ e.target.src='https://via.placeholder.com/380x200/f0ebe2/9a8070?text=رابط+خاطئ'; }} />}
+              <div style={{padding:'1rem'}}>
+                <div style={{display:'flex',gap:'6px',marginBottom:'0.5rem'}}>
+                  <span style={{background:'var(--gold)',color:'var(--dark)',display:'inline-block',padding:'3px 10px',borderRadius:'10px',fontSize:'0.72rem',fontWeight:700}}>{form.category||'الفئة'}</span>
+                  {form.badge && <span style={{background:'var(--dark)',color:'white',display:'inline-block',padding:'3px 10px',borderRadius:'10px',fontSize:'0.7rem',fontWeight:600}}>{form.badge}</span>}
+                </div>
+                <div style={{fontFamily:'Playfair Display',fontSize:'1rem',fontWeight:700,marginBottom:'0.5rem'}}>{form.name||'اسم المنتج'}</div>
+                <div style={{fontSize:'0.85rem',color:'var(--muted)',marginBottom:'0.8rem'}}>{form.desc||'وصف المنتج...'}</div>
+                <div style={{display:'flex',alignItems:'center',gap:'8px'}}>
+                  <span style={{fontWeight:700,color:'var(--gold)',fontSize:'1.1rem'}}>{form.price?`${parseFloat(form.price).toLocaleString('ar-EG')} ج.م`:'السعر'}</span>
+                  {form.oldPrice && <span style={{color:'var(--muted)',textDecoration:'line-through',fontSize:'0.9rem'}}>{parseFloat(form.oldPrice).toLocaleString('ar-EG')} ج.م</span>}
+                </div>
+                {form.featured && <div style={{marginTop:'8px',fontSize:'0.75rem',color:'var(--rose)'}}>⭐ منتج مميز</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function Footer({ setPage }) {
+  return (
+    <footer style={{background:'var(--dark)',color:'white',paddingTop:'4rem'}}>
+      <div style={{maxWidth:'1200px',margin:'0 auto',padding:'0 2rem'}}>
+        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(220px,1fr))',gap:'3rem',paddingBottom:'3rem',borderBottom:'1px solid rgba(255,255,255,0.08)'}}>
+          
+          {/* Brand */}
+          <div>
+            <div style={{fontFamily:'Playfair Display',fontSize:'2rem',fontWeight:900,color:'var(--gold)',letterSpacing:'4px',marginBottom:'0.5rem'}}>LUXE</div>
+            <div style={{fontSize:'0.75rem',color:'var(--muted)',letterSpacing:'3px',marginBottom:'1.2rem'}}>متجر الأزياء الفاخرة</div>
+            <p style={{color:'rgba(255,255,255,0.5)',fontSize:'0.85rem',lineHeight:1.8,marginBottom:'1.5rem'}}>
+              نقدم لكم أرقى التصاميم العالمية بجودة استثنائية وأسعار تنافسية، لأن الأناقة حق للجميع.
+            </p>
+            <div style={{display:'flex',gap:'12px'}}>
+              {['📘','📸','🐦','▶️'].map((icon,i)=>(
+                <div key={i} style={{width:'38px',height:'38px',borderRadius:'50%',border:'1px solid rgba(201,168,76,0.3)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',transition:'all 0.2s',fontSize:'1rem'}}
+                  onMouseOver={e=>{ e.currentTarget.style.background='rgba(201,168,76,0.15)'; e.currentTarget.style.borderColor='var(--gold)'; }}
+                  onMouseOut={e=>{ e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='rgba(201,168,76,0.3)'; }}>
+                  {icon}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div>
+            <h4 style={{color:'var(--gold)',fontWeight:700,marginBottom:'1.2rem',fontSize:'0.95rem',letterSpacing:'1px'}}>روابط سريعة</h4>
+            <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:'10px'}}>
+              {[['الرئيسية','home'],['السلة','cart'],['المفضلة','wishlist'],['تتبع طلبي','home']].map(([label,pg])=>(
+                <li key={label}>
+                  <span onClick={()=>setPage(pg)} style={{color:'rgba(255,255,255,0.55)',fontSize:'0.9rem',cursor:'pointer',transition:'color 0.2s',display:'flex',alignItems:'center',gap:'6px'}}
+                    onMouseOver={e=>e.currentTarget.style.color='var(--gold)'}
+                    onMouseOut={e=>e.currentTarget.style.color='rgba(255,255,255,0.55)'}>
+                    <span style={{color:'var(--gold)',fontSize:'0.7rem'}}>←</span>{label}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 style={{color:'var(--gold)',fontWeight:700,marginBottom:'1.2rem',fontSize:'0.95rem',letterSpacing:'1px'}}>الأقسام</h4>
+            <ul style={{listStyle:'none',display:'flex',flexDirection:'column',gap:'10px'}}>
+              {['فساتين','عبايات','توبات','أحذية','اكسسوار','جاكيتات'].map(cat=>(
+                <li key={cat}>
+                  <span style={{color:'rgba(255,255,255,0.55)',fontSize:'0.9rem',cursor:'pointer',transition:'color 0.2s'}}
+                    onMouseOver={e=>e.currentTarget.style.color='var(--gold)'}
+                    onMouseOut={e=>e.currentTarget.style.color='rgba(255,255,255,0.55)'}>
+                    {cat}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h4 style={{color:'var(--gold)',fontWeight:700,marginBottom:'1.2rem',fontSize:'0.95rem',letterSpacing:'1px'}}>تواصل معنا</h4>
+            <div style={{display:'flex',flexDirection:'column',gap:'12px'}}>
+              {[
+                {icon:'📱', label:'واتساب', value:'01023046551'},
+                {icon:'📧', label:'البريد', value:'info@luxe.com'},
+                {icon:'📍', label:'العنوان', value:`المنيا , سمالوط`},
+                {icon:'⏰', label:'أوقات العمل', value:'السبت - الخميس\n 10ص - 10م'},
+              ].map(c=>(
+                <div key={c.label} style={{display:'flex',gap:'10px',alignItems:'flex-start'}}>
+                  <span style={{fontSize:'1rem',flexShrink:0,marginTop:'2px'}}>{c.icon}</span>
+                  <div>
+                    <div style={{fontSize:'0.75rem',color:'var(--muted)'}}>{c.label}</div>
+                    <div style={{fontSize:'0.85rem',color:'rgba(255,255,255,0.7)',whiteSpace:'pre-line'}}>{c.value}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div style={{padding:'1.5rem 0',display:'flex',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap',gap:'1rem'}}>
+          <div style={{display:'flex',gap:'8px',alignItems:'center',flexWrap:'wrap'}}>
+            <span style={{color:'var(--muted)',fontSize:'0.8rem'}}>نقبل:</span>
+            {['💵 كاش','💳 فيزا','💳 ماستر','📱 فودافون كاش','🏦 إنستاباي'].map(m=>(
+              <span key={m} style={{background:'rgba(255,255,255,0.06)',border:'1px solid rgba(255,255,255,0.1)',borderRadius:'6px',padding:'4px 10px',fontSize:'0.75rem',color:'rgba(255,255,255,0.6)'}}>{m}</span>
+            ))}
+          </div>
+          <div style={{color:'rgba(255,255,255,0.3)',fontSize:'0.8rem',textAlign:'center'}}>
+            © 2026 LUXE — جميع الحقوق محفوظة | صُنع بـ ❤️ بواسطه <a href="ahmedwalid96.netlify.app">Ahmed Walid</a>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+}
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(<App />);
+</script>
+</body>
+</html>
